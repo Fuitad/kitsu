@@ -134,8 +134,10 @@
       />
 
       <div
-        class="buttons flexrow pull-bottom resolution"
+        id="resolutionNotFullScreen"
+        class="=flexrow resolution"
         v-show="movieResolutionLoaded"
+        v-if="!fullScreen"
       >
         <span class="flexrow-item time-indicator">
           Resolution: {{ movieResolution.height }} x
@@ -228,6 +230,18 @@
               (nbFrames + '').padStart(3, '0')
             }}</span
             >)
+          </div>
+
+          <div
+            id="resolutionFullScreen"
+            class="=flexrow-item resolution"
+            v-show="movieResolutionLoaded"
+            v-if="fullScreen"
+          >
+            <span class="flexrow-item time-indicator">
+              {{ movieResolution.height }} x {{ movieResolution.width }} (FPS:
+              {{ fps }})
+            </span>
           </div>
         </div>
 
