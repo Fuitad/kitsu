@@ -120,6 +120,8 @@
         :frame-duration="frameDuration"
         :is-full-screen="fullScreen"
         :movie-dimensions="movieDimensions"
+        :movie-resolution="movieResolution"
+        :movie-resolution-loaded="movieResolutionLoaded"
         :nb-frames="nbFrames"
         :width="width"
         :handle-in="-1"
@@ -130,6 +132,16 @@
         @progress-changed="onProgressChanged"
         v-show="isMovie"
       />
+
+      <div
+        class="buttons flexrow pull-bottom resolution"
+        v-show="movieResolutionLoaded"
+      >
+        <span class="flexrow-item time-indicator">
+          Resolution: {{ movieResolution.height }} x
+          {{ movieResolution.width }} - FPS: {{ fps }}
+        </span>
+      </div>
 
       <div class="buttons flexrow pull-bottom" ref="buttons">
         <div class="left flexrow" v-if="isMovie || isSound || is3DAnimation">
@@ -720,6 +732,11 @@ export default {
         width: 1920,
         height: 1080
       },
+      movieResolution: {
+        width: 0,
+        height: 0
+      },
+      movieResolutionLoaded: false,
       objectBackgroundUrl: null,
       pencil: 'big',
       pencilPalette: ['big', 'medium', 'small'],
@@ -1999,6 +2016,11 @@ export default {
           width: this.currentPreview.width,
           height: this.currentPreview.height
         }
+        this.movieResolution = {
+          width: this.currentPreview.width,
+          height: this.currentPreview.height
+        }
+        this.movieResolutionLoaded = true
         this.setCurrentFrame(0)
         this.progress.updateProgressBar(0)
       }
