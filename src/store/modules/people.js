@@ -397,6 +397,19 @@ const actions = {
     commit(PERSON_LOAD_TIME_SPENTS_END, timeSpents)
   },
 
+  loadPersonTimeSpentsByPeriod({}, { personId, startDate, endDate }) {
+    return peopleApi.getTimeSpentsByPeriod(personId, startDate, endDate)
+  },
+
+  loadProductionTimeSpents({ rootGetters }, { taskType, startDate, endDate }) {
+    return peopleApi.getProjectTimeSpentsByTaskType(
+      rootGetters.currentProduction.id,
+      taskType.id,
+      startDate,
+      endDate
+    )
+  },
+
   loadAggregatedPersonTimeSpents(
     {},
     { personId, detailLevel, year, month, week, day, productionId, studioId }
@@ -526,6 +539,14 @@ const actions = {
     month = year && month ? String(month).padStart(2, '0') : undefined
     const daysOff = await peopleApi.getDaysOff(year, month)
     commit(PEOPLE_SET_DAYS_OFF, daysOff)
+  },
+
+  loadProductionDaysOff({ rootGetters }, { startDate, endDate }) {
+    return peopleApi.getProjectDaysOff(
+      rootGetters.currentProduction.id,
+      startDate,
+      endDate
+    )
   },
 
   setPeopleSearch({ commit, rootGetters }, peopleSearch) {

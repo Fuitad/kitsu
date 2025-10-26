@@ -40,7 +40,8 @@ export const playerMixin = {
       playingPreviewFileId: null,
       speed: 3,
       task: null,
-      textColor: '#ff3860'
+      textColor: '#ff3860',
+      volume: 50
     }
   },
 
@@ -1124,14 +1125,6 @@ export const playerMixin = {
       this.updateRoomStatus()
     },
 
-    onSpeedClicked() {
-      const rates = [0.25, 0.5, 1, 1.5, 2]
-      this.speed = (this.speed % rates.length) + 1
-      const rate = rates[this.speed - 1]
-      this.setPlayerSpeed(rate)
-      this.updateRoomStatus()
-    },
-
     setPlayerSpeed(rate) {
       if (this.rawPlayer) this.rawPlayer.setSpeed(rate)
       if (this.rawPlayerComparison) this.rawPlayerComparison.setSpeed(rate)
@@ -1619,6 +1612,13 @@ export const playerMixin = {
       if (this.isCurrentPreviewSound) {
         this.soundPlayer?.redraw()
       }
+    },
+
+    speed() {
+      const rates = [0.25, 0.5, 1, 1.5, 2]
+      const rate = rates[this.speed - 1]
+      this.setPlayerSpeed(rate)
+      this.updateRoomStatus()
     }
   },
 

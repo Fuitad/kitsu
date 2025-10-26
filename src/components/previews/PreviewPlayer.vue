@@ -190,20 +190,14 @@
             v-if="(!light || fullScreen) && isMovie"
           />
 
-          <button-simple
+          <button-sound
             class="flexrow-item"
-            :title="$t('playlists.actions.unmute')"
-            icon="soundoff"
-            @click="onToggleSoundClicked"
-            v-if="isMuted"
+            @change-sound="onToggleSoundClicked"
+            v-model="isMuted"
+            v-model:volume="volume"
           />
-          <button-simple
-            class="flexrow-item"
-            :title="$t('playlists.actions.mute')"
-            icon="soundon"
-            @click="onToggleSoundClicked"
-            v-else
-          />
+
+          <speed-button class="flexrow-item" v-model="speed" v-if="isMovie" />
 
           <span
             class="flexrow-item time-indicator"
@@ -617,6 +611,7 @@ import { fullScreenMixin } from '@/components/mixins/fullscreen'
 import { domMixin } from '@/components/mixins/dom'
 
 import ButtonSimple from '@/components/widgets/ButtonSimple.vue'
+import ButtonSound from '@/components/widgets/ButtonSound.vue'
 import BrowsingBar from '@/components/previews/BrowsingBar.vue'
 import ColorPicker from '@/components/widgets/ColorPicker.vue'
 import Combobox from '@/components/widgets/Combobox.vue'
@@ -624,6 +619,7 @@ import ComboboxStyled from '@/components/widgets/ComboboxStyled.vue'
 import PencilPicker from '@/components/widgets/PencilPicker.vue'
 import PreviewViewer from '@/components/previews/PreviewViewer.vue'
 import RevisionPreview from '@/components/previews/RevisionPreview.vue'
+import SpeedButton from '@/components/widgets/SpeedButton.vue'
 const TaskInfo = () => import('@/components/sides/TaskInfo.vue')
 import VideoProgress from '@/components/previews/VideoProgress.vue'
 
@@ -638,6 +634,7 @@ export default {
     ArrowUpRightIcon,
     BrowsingBar,
     ButtonSimple,
+    ButtonSound,
     ColorPicker,
     Combobox,
     ComboboxStyled,
@@ -647,6 +644,7 @@ export default {
     PencilPicker,
     PreviewViewer,
     RevisionPreview,
+    SpeedButton,
     TaskInfo: defineAsyncComponent(TaskInfo),
     VideoProgress
   },
@@ -741,6 +739,7 @@ export default {
       isRepeating: false,
       isTyping: false,
       isWireframe: false,
+      isZoomPan: false,
       maxDuration: '00:00:00:00',
       movieDimensions: {
         width: 1920,
@@ -756,13 +755,14 @@ export default {
       pencilPalette: ['big', 'medium', 'small'],
       previewToCompare: null,
       previewToCompareId: null,
+      speed: 3,
       taskTypeId: this.entityPreviewFIles
         ? Object.keys(this.entityPreviewFiles)[0]
         : null,
       textColor: '#ff3860',
       videoDuration: 0,
+      volume: 50,
       width: 0,
-      isZoomPan: false,
       comparisonMode: 'sidebyside',
       comparisonModeOptions: [
         {
@@ -812,6 +812,13 @@ export default {
       this.onObjectBackgroundSelected()
     }
     this.resetPencilConfiguration()
+    if (this.isMuted) {
+      this.previewViewer.setVolume(0)
+    } else {
+      this.volume =
+        localPreferences.getPreference('player:volume') || this.volume
+      this.previewViewer.setVolume(this.volume)
+    }
   },
 
   beforeUnmount() {
@@ -1614,6 +1621,11 @@ export default {
       return defaultId ? background.id === defaultId : background.is_default
     },
 
+    setPlayerSpeed(rate) {
+      this.previewViewer.setSpeed(rate)
+      this.comparisonViewer.setSpeed(rate)
+    },
+
     // Annotations
 
     triggerResize() {
@@ -2383,6 +2395,17 @@ export default {
       } else {
         this.previewViewer.pauseZoom()
       }
+    },
+
+    speed() {
+      const rates = [0.25, 0.5, 1, 1.5, 2]
+      const rate = rates[this.speed - 1]
+      this.setPlayerSpeed(rate)
+    },
+
+    volume() {
+      this.previewViewer.setVolume(this.volume)
+      localPreferences.setPreference('player:volume', this.volume)
     }
   }
 }

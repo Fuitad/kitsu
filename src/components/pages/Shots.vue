@@ -384,7 +384,8 @@ export default {
         'Nb Frames',
         'Frame In',
         'Frame Out',
-        'FPS'
+        'FPS',
+        'Resolution'
       ],
       genericColumns: [
         'Metadata column name (text value)',
@@ -613,12 +614,12 @@ export default {
 
     setOptionalImportColumns() {
       const columns = [
-        this.$t('shots.fields.name'),
         this.$t('shots.fields.description'),
         this.$t('shots.fields.nb_frames'),
         this.$t('shots.fields.frame_in'),
         this.$t('shots.fields.frame_out'),
-        this.$t('shots.fields.fps')
+        this.$t('shots.fields.fps'),
+        this.$t('shots.fields.resolution')
       ]
       if (this.isPaperProduction) {
         columns.splice(1, 1)
@@ -1117,7 +1118,7 @@ export default {
         data.nb_frames = parseInt(value) - parseInt(shot.data.frame_in) + 1
       }
       await this.editShot(data)
-      this.applySearchFromUrl()
+      this.applySearchFromUrl(false)
     },
 
     showEDLImportModal() {

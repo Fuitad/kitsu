@@ -899,7 +899,10 @@ export default {
           this.showReply = false
           this.replyAttachments = []
         })
-        .catch(console.error)
+        .catch(error => {
+          console.error(error)
+          this.isReplyLoading = false
+        })
     },
 
     onDeleteReplyClicked(reply) {
@@ -916,7 +919,7 @@ export default {
       // @ for team, # for task type
       if (at !== option_at) return false
       // match at lower-case
-      return name.toLowerCase().indexOf(chunk.toLowerCase()) > -1
+      return name?.toLowerCase().indexOf(chunk.toLowerCase()) > -1
     },
 
     onAtTextChanged(input) {
@@ -1000,25 +1003,25 @@ export default {
       handler() {
         let teamOptions = []
         if (this.isCurrentUserClient) {
-          teamOptions = [
-            this.team.filter(person =>
-              ['admin', 'manager', 'supervisor', 'client'].includes(person.role)
-            )
-          ]
+          teamOptions = this.team.filter(person =>
+            ['admin', 'manager', 'client'].includes(person.role)
+          )
         } else {
           teamOptions = [...this.team]
         }
-        teamOptions = teamOptions.concat(
-          this.productionDepartmentIds.map(departmentId => {
-            const department = this.departmentMap.get(departmentId)
-            return {
-              isDepartment: true,
-              full_name: department.name,
-              color: department.color,
-              id: departmentId
-            }
-          })
-        )
+        if (!this.isCurrentUserClient) {
+          teamOptions = teamOptions.concat(
+            this.productionDepartmentIds.map(departmentId => {
+              const department = this.departmentMap.get(departmentId)
+              return {
+                isDepartment: true,
+                full_name: department.name,
+                color: department.color,
+                id: departmentId
+              }
+            })
+          )
+        }
         teamOptions.push({
           isTime: true,
           full_name: 'frame'

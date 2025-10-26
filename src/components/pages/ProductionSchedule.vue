@@ -559,7 +559,7 @@ export default {
         unassign: false
       },
       availableTaskTypes: [],
-      daysOffByPerson: [],
+      daysOffByPerson: {},
       draggedEntities: [],
       endDate: moment().add(6, 'months').endOf('day'),
       isSidePanelOpen: false,
@@ -731,10 +731,10 @@ export default {
       'createScheduleVersionedTask',
       'deleteScheduleVersion',
       'editProduction',
-      'loadAggregatedPersonDaysOff',
       'loadAssets',
       'loadAssetTypeScheduleItems',
       'loadEpisodeScheduleItems',
+      'loadProductionDaysOff',
       'loadScheduleItems',
       'loadScheduleVersions',
       'loadSequenceScheduleItems',
@@ -771,7 +771,7 @@ export default {
       this.loading.schedule = true
       this.availableTaskTypes = []
 
-      await this.loadScheduleVersions()
+      await this.loadScheduleVersions(this.currentProduction)
 
       return this.loadScheduleItems(this.currentProduction)
         .then(scheduleItems => {
@@ -1013,11 +1013,12 @@ export default {
                 .filter(Boolean)
             }
 
-            // load days off of assignees
-            const personIds = [
-              ...new Set(tasks.flatMap(task => task.assignees))
-            ]
-            await this.loadDaysOff(personIds)
+            this.daysOffByPerson = await this.loadProductionDaysOff({
+              startDate: this.startDate.format('YYYY-MM-DD'),
+              endDate: this.endDate.format('YYYY-MM-DD')
+            }).catch(
+              () => ({}) // fallback if not allowed to fetch days off
+            )
 
             // group tasks by entity type and assignee
             const tasksByType = {}
@@ -1197,19 +1198,6 @@ export default {
         }
 
         this.selectTaskTypeElement(taskTypeElement, null, resetAssignments)
-      }
-    },
-
-    async loadDaysOff(personIds) {
-      this.daysOffByPerson = []
-      for (const personId of personIds) {
-        // load sequentially to avoid too many requests
-        const daysOff = await this.loadAggregatedPersonDaysOff({
-          personId
-        }).catch(
-          () => [] // fallback if not allowed to fetch days off
-        )
-        this.daysOffByPerson[personId] = daysOff
       }
     },
 
@@ -1865,7 +1853,10 @@ export default {
     async editVersion(version) {
       this.modals.editScheduleVersion = false
       if (!version.id) {
-        const newVersion = await this.createScheduleVersion(version)
+        const newVersion = await this.createScheduleVersion({
+          production: this.currentProduction,
+          version
+        })
         this.version = newVersion.id
         this.onVersionChanged(this.version)
       } else {
@@ -1897,7 +1888,7 @@ export default {
         this.loading.applyScheduleVersion = false
       }
       // refresh version list
-      await this.loadScheduleVersions()
+      await this.loadScheduleVersions(this.currentProduction)
     }
   },
 
@@ -1930,7 +1921,8 @@ export default {
       }
     },
 
-    currentProduction() {
+    currentProduction(value) {
+      if (!value) return
       this.reset()
     }
   },

@@ -33,7 +33,6 @@
               @save="saveSearchQuery"
             />
             <combobox-production
-              v-if="isActiveTab('board')"
               class="flexrow-item production-field"
               :label="$t('main.production')"
               :production-list="productionList"
@@ -159,10 +158,10 @@ import { mapGetters, mapActions } from 'vuex'
 import colors from '@/lib/colors'
 import { sortTaskStatuses } from '@/lib/sorting'
 import {
-  daysToMinutes,
-  getBusinessDays,
+  addBusinessDays,
   getFirstStartDate,
   getLastEndDate,
+  minutesToDays,
   parseDate
 } from '@/lib/time'
 
@@ -242,6 +241,8 @@ export default {
   },
 
   mounted() {
+    this.productionId = this.$route.query.productionId || undefined
+
     this.updateActiveTab()
     this.loadPerson(this.$route.params.person_id)
     setTimeout(() => {
@@ -302,13 +303,13 @@ export default {
     },
 
     loggablePersonTasks() {
-      return this.displayedPersonTasks.filter(task => {
+      return this.sortedTasks.filter(task => {
         return this.taskTypeMap.get(task.task_type_id).allow_timelog
       })
     },
 
     loggableDoneTasks() {
-      return this.displayedPersonDoneTasks.filter(task => {
+      return this.sortedDoneTasks.filter(task => {
         return this.taskTypeMap.get(task.task_type_id).allow_timelog
       })
     },
@@ -326,18 +327,30 @@ export default {
     },
 
     sortedTasks() {
-      return this.sortTasks([...this.displayedPersonTasks])
+      let tasks = this.sortTasks([...this.displayedPersonTasks])
+      if (this.productionId) {
+        tasks = tasks.filter(task => task.project_id === this.productionId)
+      }
+      return tasks
     },
 
     sortedDoneTasks() {
-      return this.sortTasks([...this.displayedPersonDoneTasks])
+      let tasks = this.sortTasks([...this.displayedPersonDoneTasks])
+      if (this.productionId) {
+        tasks = tasks.filter(task => task.project_id === this.productionId)
+      }
+      return tasks
     },
 
     sortedAllTasks() {
-      return this.sortTasks([
+      let tasks = this.sortTasks([
         ...this.displayedPersonTasks,
         ...this.displayedPersonDoneTasks
       ])
+      if (this.productionId) {
+        tasks = tasks.filter(task => task.project_id === this.productionId)
+      }
+      return tasks
     },
 
     tasksStartDate() {
@@ -383,8 +396,7 @@ export default {
           rootEndDate = getLastEndDate(rootElement.children)
         }
         rootElement.children.forEach(task => {
-          const estimation = this.formatDuration(task.estimation)
-          if (estimation) manDays += task.estimation
+          if (task.estimation) manDays += task.estimation
         })
         Object.assign(rootElement, {
           startDate: rootStartDate,
@@ -799,14 +811,20 @@ export default {
     },
 
     saveTaskScheduleItem(item) {
-      const daysLength = getBusinessDays(item.startDate, item.endDate)
-      const estimation = daysToMinutes(this.organisation, daysLength)
-      item.man_days = estimation
+      if (item.estimation) {
+        item.endDate = addBusinessDays(
+          item.startDate,
+          Math.ceil(minutesToDays(this.organisation, item.estimation)) - 1,
+          item.parentElement.daysOff
+        )
+      }
+      item.man_days = item.estimation || 0
+
       if (item.startDate && item.endDate) {
         this.updateTask({
           taskId: item.id,
           data: {
-            estimation,
+            estimation: item.estimation,
             start_date: item.startDate.format('YYYY-MM-DD'),
             due_date: item.endDate.format('YYYY-MM-DD')
           }
@@ -862,8 +880,8 @@ export default {
     productionId() {
       this.$router.push({
         query: {
-          productionId: this.productionId,
-          tab: this.activeTab
+          ...this.$route.query,
+          productionId: this.productionId
         }
       })
     },

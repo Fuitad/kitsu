@@ -30,6 +30,12 @@ import crisp from '@/lib/crisp'
 import localPreferences from '@/lib/preferences'
 import sentry from '@/lib/sentry'
 
+import assetsStore from '@/store/modules/assets.js'
+import shotsStore from '@/store/modules/shots.js'
+import editStore from '@/store/modules/edits.js'
+import episodeStore from '@/store/modules/episodes.js'
+import sequenceStore from '@/store/modules/sequences.js'
+
 export default {
   name: 'app',
 
@@ -40,13 +46,10 @@ export default {
 
   computed: {
     ...mapGetters([
-      'assetMap',
       'assetTypeMap',
       'currentEpisode',
       'currentProduction',
       'departmentMap',
-      'editMap',
-      'episodeMap',
       'todoMap',
       'isCurrentUserAdmin',
       'isDataLoading',
@@ -57,14 +60,32 @@ export default {
       'previewFileIdToShow',
       'personMap',
       'productionMap',
-      'sequenceMap',
-      'shotMap',
       'taskComments',
       'taskMap',
       'taskStatusMap',
       'taskTypeMap',
       'user'
-    ])
+    ]),
+
+    assetMap() {
+      return assetsStore.cache.assetMap
+    },
+
+    shotMap() {
+      return shotsStore.cache.shotMap
+    },
+
+    editMap() {
+      return editStore.cache.editMap
+    },
+
+    episodeMap() {
+      return episodeStore.cache.episodeMap
+    },
+
+    sequenceMap() {
+      return sequenceStore.cache.sequenceMap
+    }
   },
 
   async mounted() {
@@ -224,7 +245,8 @@ export default {
       },
 
       'sequence:update'(eventData) {
-        if (this.sequenceMap.get(eventData.sequence_id)) {
+        const sequence = this.sequenceMap.get(eventData.sequence_id)
+        if (sequence && !sequence.lock) {
           this.loadSequence(eventData.sequence_id)
         }
       },
@@ -245,7 +267,8 @@ export default {
       },
 
       'edit:update'(eventData) {
-        if (this.editMap.get(eventData.edit_id)) {
+        const edit = this.editMap.get(eventData.edit_id)
+        if (edit && !edit.lock) {
           this.loadEdit(eventData.edit_id)
         }
       },
@@ -266,7 +289,8 @@ export default {
       },
 
       'episode:update'(eventData) {
-        if (this.episodeMap.get(eventData.episode_id)) {
+        const episode = this.episodeMap.get(eventData.episode_id)
+        if (episode && !episode.lock) {
           this.loadEpisode(eventData.episode_id)
         }
       },
@@ -290,8 +314,10 @@ export default {
       },
 
       'shot:update'(eventData) {
+        const shot = this.shotMap.get(eventData.shot_id)
         if (
-          this.shotMap.get(eventData.shot_id) &&
+          shot &&
+          !shot.lock &&
           this.currentProduction?.id === eventData.project_id
         ) {
           this.loadShot(eventData.shot_id)
@@ -316,7 +342,8 @@ export default {
       },
 
       'asset:update'(eventData) {
-        if (this.assetMap.get(eventData.asset_id)) {
+        const asset = this.assetMap.get(eventData.asset_id)
+        if (asset && !asset.lock) {
           this.loadAsset(eventData.asset_id)
         }
       },
@@ -814,6 +841,7 @@ h2 {
     background-color: $grey-strong;
     border: 1px solid $white;
     border-radius: 3px;
+    white-space: nowrap;
   }
 }
 
@@ -1888,6 +1916,24 @@ td.fps {
 .ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@mixin ellipsis-line-clamp($lines) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ellipsis-2-lines {
+  @include ellipsis-line-clamp(2);
+}
+.ellipsis-3-lines {
+  @include ellipsis-line-clamp(3);
+}
+.ellipsis-4-lines {
+  @include ellipsis-line-clamp(4);
 }
 
 .header-icon {
