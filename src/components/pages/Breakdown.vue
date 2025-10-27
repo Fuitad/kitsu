@@ -617,10 +617,8 @@ export default {
     availableAssetsByType() {
       const result = []
       this.assetsByType.forEach(typeGroup => {
-        let newGroup = typeGroup.filter(
-          asset =>
-            !asset.canceled && (!asset.is_shared || this.libraryDisplayed)
-        )
+        let newGroup = typeGroup.filter(asset => !asset.canceled)
+
         if (this.isTVShow && this.isOnlyCurrentEpisode) {
           newGroup = typeGroup.filter(asset => {
             return (
