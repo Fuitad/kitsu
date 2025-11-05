@@ -505,7 +505,7 @@ td p {
 }
 
 .column {
-  max-width: 400px;
+  max-width: 550px;
 }
 
 td.name {
