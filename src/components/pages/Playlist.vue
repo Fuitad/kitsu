@@ -366,7 +366,7 @@
                 <div
                   :class="{
                     'addition-shot': true,
-                    playlisted: currentEntities[sequence.id] !== undefined
+                    playlisted: currentEntitiesMap[sequence.id] !== undefined
                   }"
                   :key="sequence.id"
                   draggable="true"
