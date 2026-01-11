@@ -109,6 +109,7 @@
             :done-tasks="loggableDoneTasks"
             :is-loading="isTasksLoading"
             :is-error="isTasksLoadingError"
+            :days-off="daysOff"
             :day-off-error="dayOffError"
             :time-spent-map="personTimeSpentMap"
             :time-spent-total="personTimeSpentTotal"
@@ -121,7 +122,7 @@
             v-else-if="isActiveTab('timesheets') && isCurrentUserManager"
           />
 
-          <div v-else-if="isActiveTab('schedule')">
+          <template v-else-if="isActiveTab('schedule')">
             <schedule
               ref="schedule-widget"
               :days-off="daysOff"
@@ -129,7 +130,6 @@
               :end-date="tasksEndDate.clone().add(3, 'months')"
               :hierarchy="scheduleItems"
               :zoom-level="zoomLevel"
-              :height="scheduleHeight"
               :is-loading="isTasksLoading"
               :is-estimation-linked="true"
               :with-milestones="false"
@@ -137,10 +137,13 @@
               @estimation-changed="event => saveTaskScheduleItem(event.item)"
               v-if="scheduleItems.length > 0"
             />
+            <div v-else-if="isTasksLoading">
+              <spinner />
+            </div>
             <div class="has-text-centered" v-else>
               {{ $t('main.empty_schedule') }}
             </div>
-          </div>
+          </template>
         </template>
       </div>
     </div>
@@ -177,9 +180,10 @@ import RouteSectionTabs from '@/components/widgets/RouteSectionTabs.vue'
 import Schedule from '@/components/widgets/Schedule.vue'
 import SearchField from '@/components/widgets/SearchField.vue'
 import SearchQueryList from '@/components/widgets/SearchQueryList.vue'
+import Spinner from '@/components/widgets/Spinner.vue'
+import TaskInfo from '@/components/sides/TaskInfo.vue'
 import TimesheetList from '@/components/lists/TimesheetList.vue'
 import TodosList from '@/components/lists/TodosList.vue'
-import TaskInfo from '@/components/sides/TaskInfo.vue'
 import UserCalendar from '@/components/widgets/UserCalendar.vue'
 
 export default {
@@ -197,6 +201,7 @@ export default {
     Schedule,
     SearchField,
     SearchQueryList,
+    Spinner,
     TaskInfo,
     TimesheetList,
     TodosList,
@@ -219,7 +224,6 @@ export default {
       },
       person: null,
       productionId: undefined,
-      scheduleHeight: 0,
       selectedDate: moment().format('YYYY-MM-DD'),
       sortOptions: [
         'entity_name',
@@ -249,7 +253,6 @@ export default {
       this.searchField?.focus()
       this.$refs['schedule-widget']?.scrollToDate(this.tasksStartDate)
     }, 300)
-    window.addEventListener('resize', this.resetScheduleHeight)
 
     this.setSearchFromUrl()
     this.onSearchChange()
@@ -258,7 +261,6 @@ export default {
   },
 
   afterDestroy() {
-    window.removeEventListener('resize', this.resetScheduleHeight)
     this.$store.commit('LOAD_PERSON_TASKS_END', {
       tasks: [],
       userFilters: {},
@@ -577,21 +579,6 @@ export default {
       }
     },
 
-    resetScheduleHeight() {
-      this.$nextTick(() => {
-        if (this.isActiveTab('schedule')) {
-          const pageHeight = this.$refs.page?.offsetHeight || 0
-          const headerHeight = this.$refs.header?.offsetHeight || 0
-          const tabsHeight = this.$refs.tabs?.offsetHeight || 0
-          const searchHeight = this.$refs.search?.offsetHeight || 0
-          const queryHeight = this.$refs.query?.offsetHeight || 0
-          this.scheduleHeight =
-            pageHeight - headerHeight - tabsHeight - searchHeight - queryHeight
-          this.$refs['schedule-widget']?.resetScheduleSize()
-        }
-      })
-    },
-
     buildProjectScheduleItem(project) {
       return {
         ...project,
@@ -702,6 +689,11 @@ export default {
         this.isTasksLoadingError = true
       }
 
+      this.loadDaysOff()
+    },
+
+    async loadDaysOff() {
+      const personId = this.person.id
       try {
         this.daysOff = await this.loadAggregatedPersonDaysOff({ personId })
       } catch (error) {
@@ -798,16 +790,18 @@ export default {
       } catch (error) {
         this.dayOffError = error.body?.message || true
       }
+      await this.loadDaysOff()
     },
 
-    async onUnsetDayOff() {
+    async onUnsetDayOff(dayOff) {
       this.dayOffError = false
       try {
-        await this.unsetDayOff()
+        await this.unsetDayOff(dayOff)
         this.$refs['timesheet-list']?.closeUnsetDayOffModal()
       } catch (error) {
         this.dayOffError = error.body?.message || true
       }
+      await this.loadDaysOff()
     },
 
     saveTaskScheduleItem(item) {
@@ -867,7 +861,6 @@ export default {
     },
 
     activeTab() {
-      this.resetScheduleHeight()
       this.$nextTick(() => {
         this.$refs['schedule-widget']?.scrollToDate(this.tasksStartDate)
       })

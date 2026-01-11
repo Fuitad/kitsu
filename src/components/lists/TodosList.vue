@@ -149,7 +149,7 @@
                 type="number"
                 :value="formatDuration(entry.estimation, false)"
                 @change="updateEstimation($event.target.value)"
-                v-if="isCurrentUserManager && selectionGrid[entry.id]"
+                v-if="isEditable && selectionGrid[entry.id]"
               />
               <template v-else>
                 {{ formatDuration(entry.estimation) }}
@@ -170,7 +170,7 @@
                 :model-value="getDate(entry.start_date)"
                 :with-margin="false"
                 @update:model-value="updateStartDate"
-                v-if="isCurrentUserManager && selectionGrid[entry.id]"
+                v-if="isEditable && selectionGrid[entry.id]"
               />
               <template v-else>
                 {{ formatDate(entry.start_date) }}
@@ -183,7 +183,7 @@
                 :model-value="getDate(entry.due_date)"
                 :with-margin="false"
                 @update:model-value="updateDueDate"
-                v-if="isCurrentUserManager && selectionGrid[entry.id]"
+                v-if="isEditable && selectionGrid[entry.id]"
               />
               <template v-else>
                 {{ formatDate(entry.due_date) }}
@@ -428,11 +428,16 @@ export default {
       'taskMap',
       'taskTypeMap',
       'user',
-      'isCurrentUserManager'
+      'isCurrentUserManager',
+      'isCurrentUserSupervisor'
     ]),
 
     displayedTasks() {
       return this.tasks
+    },
+
+    isEditable() {
+      return this.isCurrentUserManager || this.isCurrentUserSupervisor
     },
 
     isDescriptionPresent() {
@@ -768,7 +773,7 @@ export default {
         } else {
           data = {
             start_date: null,
-            due_date: dueDate
+            due_date: task.due_date
           }
         }
         if (this.isTaskChanged(task, data)) {
@@ -802,7 +807,7 @@ export default {
           )
         } else {
           data = {
-            start_date: startDate,
+            start_date: task.start_date,
             due_date: null
           }
         }

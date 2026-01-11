@@ -414,7 +414,8 @@ export default {
       return itemCosts
     },
 
-    /* It gets the cost of a person for a given month, exceptions are
+    /*
+     * It gets the cost of a person for a given month, exceptions are
      * prioritized over the month costs.
      */
     getMonthCost(personEntry, month) {
@@ -426,8 +427,8 @@ export default {
       }
       personEntry.exceptions = personEntry.exceptions || {}
       return (
-        parseInt(personEntry.exceptions[monthKey]) ||
-        parseInt(personEntry.monthCosts[monthKey]) ||
+        parseInt(personEntry.exceptions[monthKey] || 0) ||
+        parseInt(personEntry.monthCosts[monthKey] || 0) ||
         0
       )
     },

@@ -189,7 +189,7 @@ const actions = {
 
   changePlaylistPreview(
     { commit, dispatch },
-    { playlist, entity, previewFileId, previousPreviewFileId }
+    { playlist, entity, previewFileId, previousPreviewFileId, remote = true }
   ) {
     commit(CHANGE_PLAYLIST_PREVIEW, {
       playlist,
@@ -197,7 +197,12 @@ const actions = {
       previewFileId,
       previousPreviewFileId
     })
-    return dispatch('editPlaylist', { data: playlist })
+
+    if (remote) {
+      return dispatch('editPlaylist', { data: playlist })
+    } else {
+      return Promise.resolve()
+    }
   },
 
   removeBuildJob({ commit }, job) {
@@ -231,8 +236,8 @@ const actions = {
     return playlistsApi.loadTempPlaylist(production, taskIds, sort)
   },
 
-  getRunningPreviewFiles() {
-    return playlistsApi.getRunningPreviewFiles()
+  getRunningPreviewFiles(_, { limit, lastPreviewFileId = null }) {
+    return playlistsApi.getRunningPreviewFiles(limit, lastPreviewFileId)
   },
 
   markPreviewFileAsBroken(utils, previewFileId) {
@@ -244,8 +249,8 @@ const actions = {
     return playlistsApi.updatePreviewFileValidationStatus(previewFile, status)
   },
 
-  notifyClients({ commit }, { playlist, studioId }) {
-    return playlistsApi.notifyClients(playlist, studioId)
+  notifyClients({ commit }, { playlist, studioId, departmentId }) {
+    return playlistsApi.notifyClients(playlist, studioId, departmentId)
   }
 }
 
@@ -398,9 +403,11 @@ const mutations = {
         entityPlaylist.preview_file_id === info.before.preview_file_id
     )
     if (entityToMoveIndex >= 0 && targetShotIndex >= 0) {
-      playlist.shots.splice(entityToMoveIndex, 1)
+      const tmpShots = [...playlist.shots]
+      tmpShots.splice(entityToMoveIndex, 1)
       if (entityToMoveIndex > targetShotIndex) targetShotIndex++
-      playlist.shots.splice(targetShotIndex, 0, entityToMove)
+      tmpShots.splice(targetShotIndex, 0, entityToMove)
+      playlist.shots = tmpShots
     }
   },
 
@@ -417,8 +424,8 @@ const mutations = {
         e => e.id === entityId && e.preview_file_id === previousPreviewFileId
       )
     }
+    state.playlistEntryMap.delete(`${entityId}-${previousPreviewFileId}`)
     if (entityToChange) {
-      state.playlistEntryMap.delete(`${entityId}-${previousPreviewFileId}`)
       state.playlistEntryMap.set(`${entityId}-${previewFileId}`, entityToChange)
       entityToChange.preview_file_id = previewFileId
     }

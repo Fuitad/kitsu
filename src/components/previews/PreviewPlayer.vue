@@ -6,7 +6,7 @@
           <div
             class="canvas-wrapper"
             ref="canvas-wrapper"
-            oncontextmenu="return false;"
+            oncontextmenu="return false"
             @click="onCanvasClicked"
             v-show="!isZoomPan && isAnnotationsDisplayed"
           >
@@ -16,7 +16,7 @@
           <div
             class="canvas-comparison-wrapper"
             ref="canvas-comparison-wrapper"
-            oncontextmenu="return false;"
+            oncontextmenu="return false"
             @click="onCanvasClicked"
             v-show="
               !isZoomPan &&
@@ -586,7 +586,7 @@
 
 <script>
 import { fabric } from 'fabric'
-import { PSBrush } from '@arch-inc/fabricjs-psbrush'
+import { PSBrush } from 'fabricjs-psbrush'
 
 import {
   ArrowUpRightIcon,
@@ -1446,14 +1446,9 @@ export default {
     setFullScreen() {
       this.endAnnotationSaving()
       const promise = this.documentSetFullScreen(this.container)
-      if (promise) {
-        promise.then(() => {
-          this.fullScreen = true
-        })
-      } else {
-        // fallback for legacy browsers
+      Promise.resolve(promise).finally(() => {
         this.fullScreen = true
-      }
+      })
       this.$nextTick(() => {
         // Needed to avoid fullscreen button to be called with space bar.
         this.clearFocus()
@@ -1463,25 +1458,20 @@ export default {
     exitFullScreen() {
       this.endAnnotationSaving()
       const promise = this.documentExitFullScreen()
-      if (promise) {
-        promise.then(() => {
-          this.fullScreen = false
-          this.$nextTick(() => {
-            this.previewViewer.resize()
-            this.comparisonViewer.resize()
-          })
-        })
-      } else {
-        // fallback for legacy browsers
+      Promise.resolve(promise).finally(() => {
         this.fullScreen = false
-      }
+        this.$nextTick(() => {
+          this.previewViewer?.resize()
+          this.comparisonViewer?.resize()
+        })
+      })
       this.isComparing = false
       this.isCommentsHidden = true
       this.$nextTick(() => {
         // Needed to avoid fullscreen button to be called with space bar.
         this.clearFocus()
-        this.previewViewer.resize()
-        this.comparisonViewer.resize()
+        this.previewViewer?.resize()
+        this.comparisonViewer?.resize()
         this.triggerResize()
       })
     },
@@ -1503,8 +1493,8 @@ export default {
         this.isCommentsHidden = true
         this.endAnnotationSaving()
         this.$nextTick(() => {
-          this.previewViewer.resize()
-          this.comparisonViewer.resize()
+          this.previewViewer?.resize()
+          this.comparisonViewer?.resize()
           this.clearFocus()
           this.$nextTick(() => {
             this.loadAnnotation()

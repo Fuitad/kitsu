@@ -479,16 +479,11 @@ export default {
     },
 
     getSearchQueryTitle(searchQuery) {
-      if (searchQuery.is_shared) {
-        let title = 'Shared by '
-        const person = this.personMap.get(searchQuery.person_id)
-        if (person) {
-          title += person.full_name
-        }
-        return title
-      } else {
-        return null
+      if (!searchQuery.is_shared) {
+        return
       }
+      const person = this.personMap.get(searchQuery.person_id)
+      return this.$t('main.shared_by', { name: person?.full_name })
     },
 
     getDepartment(group) {
@@ -541,12 +536,15 @@ export default {
   .group-list {
     align-items: flex-start;
     background-color: var(--background-alt);
+    border: inherit;
+    border-top-right-radius: 1em;
     border-bottom-left-radius: 1em;
     border-bottom-right-radius: 1em;
     display: flex;
     flex-direction: column;
-    left: 0;
+    left: -1px;
     max-height: 200px;
+    min-width: calc(100% + 2px + 1em);
     overflow-x: hidden;
     overflow-y: auto;
     padding: 0.5rem 0;
@@ -572,7 +570,7 @@ export default {
 }
 
 .search-queries .tag:hover {
-  transform: scale(1.1);
+  transform: scale(1.03);
 }
 
 .search-queries .group.tag:hover, // avoid bug (overflow)

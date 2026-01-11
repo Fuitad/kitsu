@@ -69,34 +69,29 @@
         @click="onNotifyClientsClicked"
         v-if="!isLoading && isCurrentUserManager && playlist.for_client"
       />
-      <button-simple
-        class="playlist-button topbar-button flexrow-item full-button"
-        icon="plus"
-        :text="addEntitiesText"
-        @click="$emit('show-add-entities')"
-        :active="
-          !(
-            (isCurrentUserManager || isCurrentUserSupervisor) &&
-            !isAddingEntity &&
-            !isFullMode
-          )
-        "
-        v-if="!isLoading && isCurrentUserManager"
-      />
-      <button-simple
-        @click="$emit('edit-clicked')"
-        class="edit-button playlist-button flexrow-item"
-        :title="$t('playlists.actions.edit')"
-        icon="edit"
-        v-if="isCurrentUserManager || isCurrentUserSupervisor"
-      />
-      <button-simple
-        @click="showDeleteModal"
-        class="delete-button playlist-button flexrow-item"
-        :title="$t('playlists.actions.delete')"
-        icon="trash"
-        v-if="isCurrentUserManager || isCurrentUserSupervisor"
-      />
+
+      <template v-if="isAllowToEdit">
+        <button-simple
+          class="playlist-button topbar-button flexrow-item full-button"
+          icon="plus"
+          :text="addEntitiesText"
+          @click="$emit('show-add-entities')"
+          :active="isAddingEntity || isFullMode"
+          v-if="!isLoading"
+        />
+        <button-simple
+          @click="$emit('edit-clicked')"
+          class="edit-button playlist-button flexrow-item"
+          :title="$t('playlists.actions.edit')"
+          icon="edit"
+        />
+        <button-simple
+          @click="showDeleteModal"
+          class="delete-button playlist-button flexrow-item"
+          :title="$t('playlists.actions.delete')"
+          icon="trash"
+        />
+      </template>
     </div>
 
     <div class="flexrow filler" v-show="!isAddingEntity || isLoading">
@@ -241,6 +236,13 @@
           v-if="isCurrentPreviewSound && !isLoading"
         />
 
+        <pdf-viewer
+          ref="pdf-player"
+          :preview="currentPreview"
+          :default-height="pictureDefaultHeight"
+          v-if="isCurrentPreviewPdf && !isLoading"
+        />
+
         <p
           :style="{ width: '100%' }"
           class="preview-standard-file has-text-centered"
@@ -296,7 +298,7 @@
         <div
           class="canvas-wrapper"
           ref="canvas-wrapper"
-          oncontextmenu="return false;"
+          oncontextmenu="return false"
           v-show="
             !isCurrentPreviewFile &&
             isAnnotationsDisplayed &&
@@ -710,7 +712,7 @@
           :active="isZoomEnabled"
           icon="loupe"
           :title="$t('playlists.actions.annotation_zoom_pan')"
-          @click="isZoomEnabled = !isZoomEnabled"
+          @click="onPanZoomClicked()"
           v-if="isCurrentPreviewMovie || isCurrentPreviewPicture"
         />
         <transition name="slide">
@@ -1032,6 +1034,7 @@ import PencilPicker from '@/components/widgets/PencilPicker.vue'
 import PlaylistedEntity from '@/components/pages/playlists/PlaylistedEntity.vue'
 import PictureViewer from '@/components/previews/PictureViewer.vue'
 import RawVideoPlayer from '@/components/pages/playlists/RawVideoPlayer.vue'
+import PdfViewer from '@/components/previews/PdfViewer.vue'
 import PreviewRoom from '@/components/widgets/PreviewRoom.vue'
 import SelectTaskTypeModal from '@/components/modals/SelectTaskTypeModal.vue'
 import SoundViewer from '@/components/previews/SoundViewer.vue'
@@ -1057,6 +1060,7 @@ export default {
     DownloadIcon,
     GlobeIcon,
     ObjectViewer,
+    PdfViewer,
     PencilPicker,
     PictureViewer,
     MultiPictureViewer,
@@ -1184,6 +1188,9 @@ export default {
   mounted() {
     if (this.isMounted) return
     this.$options.scrubbing = false
+    if (this.isCurrentUserClient) {
+      this.isCommentsHidden = false
+    }
     this.isHd = Boolean(this.organisation.hd_by_default)
     if (this.entities) {
       this.entityList = this.entities
@@ -1232,6 +1239,7 @@ export default {
       'isCurrentUserSupervisor',
       'isTVShow',
       'organisation',
+      'personMap',
       'previewFileMap',
       'productionBackgrounds',
       'shotMap',
@@ -1273,6 +1281,17 @@ export default {
         }
       })
       return picturePreviews
+    },
+
+    isAllowToEdit() {
+      if (this.isCurrentUserManager) {
+        return true
+      }
+      if (this.isCurrentUserSupervisor) {
+        const creator = this.personMap.get(this.playlist.created_by)
+        return !creator || creator.id === this.user.id
+      }
+      return false
     },
 
     isMovieComparison() {
@@ -1463,14 +1482,15 @@ export default {
       this.errors.notifyClients = false
     },
 
-    async confirmNotifyClients({ studioId }) {
+    async confirmNotifyClients({ studioId, departmentId }) {
       this.loading.notifyClients = true
       this.errors.notifyClients = false
       this.success.notifyClients = false
       try {
         await this.notifyClients({
           playlist: this.playlist,
-          studioId
+          studioId,
+          departmentId
         })
         this.success.notifyClients = true
       } catch (err) {
@@ -1820,17 +1840,18 @@ export default {
       if (!this.currentEntity) return
       if (this.playingEntityIndex >= 0) {
         if (toMoveIndex >= 0 && targetIndex >= 0) {
-          this.entityList.splice(toMoveIndex, 1)
-          this.entityList = [
-            ...this.entityList.slice(0, targetIndex),
-            entityToMove,
-            ...this.entityList.slice(targetIndex)
-          ]
+          const tmpEntityList = [...this.entityList]
+          tmpEntityList.splice(toMoveIndex, 1)
+          tmpEntityList.splice(targetIndex, 0, entityToMove)
+          this.entityList = []
+          this.$nextTick(() => {
+            this.entityList = tmpEntityList
+            this.$nextTick(() => {
+              this.playingEntityIndex = targetIndex
+              this.scrollToEntity(this.playingEntityIndex)
+            })
+          })
         }
-        this.$nextTick(() => {
-          this.playingEntityIndex = targetIndex
-          this.scrollToEntity(this.playingEntityIndex)
-        })
       }
     },
 
@@ -2316,6 +2337,17 @@ export default {
     onEntityDragStart(event, entity) {
       event.dataTransfer.setData('entityId', entity.id)
       event.dataTransfer.setData('previewFileId', entity.preview_file_id)
+    },
+
+    onPanZoomClicked() {
+      if (!this.isZoomEnabled) {
+        this.isDrawing = false
+        this.isAnnotationsDisplayed = false
+        this.isZoomEnabled = true
+      } else {
+        this.isZoomEnabled = false
+        this.isAnnotationsDisplayed = true
+      }
     },
 
     resumePanZoom() {

@@ -134,7 +134,8 @@ export const playerMixin = {
         !this.isCurrentPreviewMovie &&
         !this.isCurrentPreviewPicture &&
         !this.isCurrentPreviewSound &&
-        !this.isCurrentPreviewModel
+        !this.isCurrentPreviewModel &&
+        !this.isCurrentPreviewPdf
       )
     },
 
@@ -994,7 +995,7 @@ export const playerMixin = {
     onWindowResize() {
       const now = new Date().getTime()
       this.lastCall = this.lastCall || 0
-      if (now - this.lastCall > 600) {
+      if (now - this.lastCall > 100) {
         this.lastCall = now
         setTimeout(() => {
           this.resetHeight()
@@ -1236,6 +1237,10 @@ export const playerMixin = {
 
     resetCanvasSize() {
       return this.$nextTick().then(() => {
+        if (!this.zoomEnabled) {
+          this.resetPanZoom()
+        }
+
         if (this.isCurrentPreviewMovie && this.isAnnotationCanvas()) {
           if (this.canvas) {
             // Video Ratio

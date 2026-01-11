@@ -82,7 +82,8 @@ import async from 'async'
 const cache = {
   shots: [],
   shotMap: new Map(),
-  shotIndex: []
+  shotIndex: {},
+  result: []
 }
 
 const helpers = {
@@ -401,6 +402,11 @@ const actions = {
     const personMap = rootGetters.personMap
     const isTVShow = rootGetters.isTVShow
     let episode = isTVShow ? rootGetters.currentEpisode : null
+
+    if (!production) {
+      if (callback) return callback()
+      return
+    }
 
     if (episode && ['all', 'main'].includes(episode.id)) {
       // If it's a wide episode, we just store it. There isn't anything to
