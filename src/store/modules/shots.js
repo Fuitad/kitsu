@@ -1,4 +1,5 @@
 import moment from 'moment'
+
 import peopleApi from '@/store/api/people'
 import shotsApi from '@/store/api/shots'
 
@@ -77,7 +78,6 @@ import {
   CLEAR_SELECTED_SHOTS,
   SET_SHOT_SELECTION
 } from '@/store/mutation-types'
-import async from 'async'
 
 const cache = {
   shots: [],
@@ -522,7 +522,7 @@ const actions = {
       )
       return func
         .runPromiseAsSeries(createTaskPromises)
-        .then(() => Promise.resolve(shot))
+        .then(() => shot)
         .catch(console.error)
     })
   },
@@ -552,14 +552,13 @@ const actions = {
       } else {
         commit(REMOVE_SHOT, shot)
       }
-      return Promise.resolve()
     })
   },
 
   restoreShot({ commit, state }, shot) {
     return shotsApi.restoreShot(shot).then(shot => {
       commit(RESTORE_SHOT_END, shot)
-      return Promise.resolve(shot)
+      return shot
     })
   },
 
@@ -569,18 +568,19 @@ const actions = {
       .postCsv(production, state.shotsCsvFormData, toUpdate)
       .then(() => {
         commit(IMPORT_SHOTS_END)
-        return Promise.resolve()
       })
   },
 
   uploadEdlFile({ rootGetters }, { edl_file, namingConvention, matchCase }) {
     const production = rootGetters.currentProduction
     const episode = rootGetters.isTVShow ? rootGetters.currentEpisode : null
-    return shotsApi
-      .postEdl(production, edl_file, namingConvention, matchCase, episode)
-      .then(() => {
-        return Promise.resolve()
-      })
+    return shotsApi.postEdl(
+      production,
+      edl_file,
+      namingConvention,
+      matchCase,
+      episode
+    )
   },
 
   displayMoreShots({ commit, rootGetters }) {
@@ -670,8 +670,9 @@ const actions = {
     }
     const lines = shots.map(shot => {
       let shotLine = []
-      if (isTVShow)
-        shotLine.push(rootGetters.episodeMap.get(shot.episode_id).name)
+      if (isTVShow) {
+        shotLine.push(shot.episode_name)
+      }
       shotLine = shotLine.concat([
         shot.sequence_name,
         shot.name,
@@ -775,31 +776,19 @@ const actions = {
     commit(CLEAR_SELECTED_SHOTS)
   },
 
-  deleteSelectedShots({ state, dispatch }) {
-    return new Promise((resolve, reject) => {
-      let selectedShotIds = [...state.selectedShots.values()]
-        .filter(shot => !shot.canceled)
-        .map(shot => shot.id)
-      if (selectedShotIds.length === 0) {
-        selectedShotIds = [...state.selectedShots.keys()]
+  async deleteSelectedShots({ state, dispatch }) {
+    let selectedShotIds = [...state.selectedShots.values()]
+      .filter(shot => !shot.canceled)
+      .map(shot => shot.id)
+    if (selectedShotIds.length === 0) {
+      selectedShotIds = [...state.selectedShots.keys()]
+    }
+    for (const shotId of selectedShotIds) {
+      const shot = cache.shotMap.get(shotId)
+      if (shot) {
+        await dispatch('deleteShot', shot)
       }
-      async.eachSeries(
-        selectedShotIds,
-        (shotId, next) => {
-          const shot = cache.shotMap.get(shotId)
-          if (shot) {
-            dispatch('deleteShot', shot)
-          }
-          next()
-        },
-        err => {
-          if (err) reject(err)
-          else {
-            resolve()
-          }
-        }
-      )
-    })
+    }
   },
 
   async setNbFramesFromTaskTypePreviews(

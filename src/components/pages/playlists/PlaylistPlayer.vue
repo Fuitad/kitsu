@@ -552,7 +552,7 @@
         <button-sound
           class="flexrow-item playlist-button"
           @change-sound="onToggleSoundClicked"
-          v-model="isMuted"
+          v-model:muted="isMuted"
           v-model:volume="volume"
         />
         <button-simple
@@ -1664,7 +1664,7 @@ export default {
 
       // we've seen all the frames the picture should be visible
       const previews = this.currentEntity.preview_file_previews
-      if (previews.length === this.currentPreviewIndex) {
+      if (previews && previews.length === this.currentPreviewIndex) {
         this.$nextTick(() => {
           this.onPlayNextEntity(true)
           this.framesSeenOfPicture = 1
