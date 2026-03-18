@@ -146,13 +146,17 @@
       </div>
 
       <div class="buttons flexrow pull-bottom" ref="buttons">
-        <div class="left flexrow" v-if="isMovie || isSound || is3DAnimation">
+        <div
+          class="left flexrow"
+          v-if="isMovie || isSound || (is3DModel && is3DAnimation)"
+        >
           <button-simple
             class="flexrow-item"
+            :disabled="!isReady"
             :title="$t('playlists.actions.play')"
             icon="play"
             @click="onPlayPauseClicked"
-            v-if="!isPlaying"
+            v-if="!isPlaying || !isReady"
           />
           <button-simple
             class="flexrow-item"
@@ -168,7 +172,7 @@
             :is-dark="true"
             :thin="true"
             v-model="current3DAnimation"
-            v-if="is3DAnimation"
+            v-if="is3DModel && is3DAnimation"
           />
         </div>
 
@@ -215,7 +219,7 @@
           </span>
 
           <div
-            class="flexrow-item time-indicator mr1"
+            class="flexrow-item time-indicator nowrap mr1"
             :title="$t('playlists.actions.frame_number')"
           >
             <span> ({{ currentFrameLabel }}</span
@@ -286,7 +290,7 @@
               icon="left"
               @click="onPreviousComparisonClicked"
             />
-            <span class="flexrow-item comparison-index">
+            <span class="flexrow-item comparison-index nowrap">
               {{ comparisonPreviewIndex + 1 }} /
               {{ comparisonPreviewLength }}
             </span>
@@ -520,6 +524,9 @@
 
           <a
             class="button flexrow-item"
+            :class="{
+              'is-disabled': !isReady
+            }"
             :href="originalDlPath"
             :title="$t('playlists.actions.download_file')"
             v-if="
@@ -979,15 +986,8 @@ export default {
       return !this.isPicture && !this.isMovie // && !this.is3DModel && !this.isPdf
     },
 
-    isFullScreenEnabled() {
-      return !!(
-        document.fullscreenEnabled ||
-        document.mozFullScreenEnabled ||
-        document.msFullscreenEnabled ||
-        document.webkitSupportsFullscreen ||
-        document.webkitFullscreenEnabled ||
-        document.createElement('video').webkitRequestFullScreen
-      )
+    isReady() {
+      return this.currentPreview?.status === 'ready'
     },
 
     originalPath() {
@@ -1445,10 +1445,11 @@ export default {
 
     setFullScreen() {
       this.endAnnotationSaving()
-      const promise = this.documentSetFullScreen(this.container)
-      Promise.resolve(promise).finally(() => {
-        this.fullScreen = true
-      })
+      this.documentSetFullScreen(this.container)
+        .then(() => {
+          this.fullScreen = true
+        })
+        .catch(console.error)
       this.$nextTick(() => {
         // Needed to avoid fullscreen button to be called with space bar.
         this.clearFocus()
@@ -1457,14 +1458,15 @@ export default {
 
     exitFullScreen() {
       this.endAnnotationSaving()
-      const promise = this.documentExitFullScreen()
-      Promise.resolve(promise).finally(() => {
-        this.fullScreen = false
-        this.$nextTick(() => {
-          this.previewViewer?.resize()
-          this.comparisonViewer?.resize()
+      this.documentExitFullScreen()
+        .then(() => {
+          this.fullScreen = false
+          this.$nextTick(() => {
+            this.previewViewer?.resize()
+            this.comparisonViewer?.resize()
+          })
         })
-      })
+        .catch(console.error)
       this.isComparing = false
       this.isCommentsHidden = true
       this.$nextTick(() => {
@@ -2051,17 +2053,7 @@ export default {
         false
       )
       this.container.addEventListener(
-        'mozfullscreenchange',
-        this.onFullScreenChange,
-        false
-      )
-      this.container.addEventListener(
-        'MSFullscreenChange',
-        this.onFullScreenChange,
-        false
-      )
-      this.container.addEventListener(
-        'webkitfullscreenchange',
+        'webkitfullscreenchange', // Safari < 16.4
         this.onFullScreenChange,
         false
       )
@@ -2076,17 +2068,7 @@ export default {
         false
       )
       this.container.removeEventListener(
-        'mozfullscreenchange',
-        this.onFullScreenChange,
-        false
-      )
-      this.container.removeEventListener(
-        'MSFullscreenChange',
-        this.onFullScreenChange,
-        false
-      )
-      this.container.removeEventListener(
-        'webkitfullscreenchange',
+        'webkitfullscreenchange', // Safari < 16.4
         this.onFullScreenChange,
         false
       )
@@ -2444,6 +2426,7 @@ export default {
   height: 32px;
   border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .buttons .button:first-child {
