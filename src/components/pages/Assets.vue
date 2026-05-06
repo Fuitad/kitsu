@@ -81,7 +81,7 @@
         />
         <asset-list
           ref="asset-list"
-          :displayed-assets="displayedAssetsByTypeFiltered"
+          :displayed-assets="displayedAssetsByType"
           :display-settings="displaySettings"
           :is-loading="isAssetsLoading || initialLoading"
           :is-error="isAssetsLoadingError"
@@ -380,6 +380,7 @@ export default {
         isImportRenderDisplayed: false,
         isNewDisplayed: false
       },
+      resetTimeout: null,
       success: {
         edit: false
       }
@@ -431,6 +432,7 @@ export default {
 
   beforeUnmount() {
     this.clearSelectedAssets()
+    if (this.resetTimeout) clearTimeout(this.resetTimeout)
   },
 
   computed: {
@@ -474,33 +476,6 @@ export default {
 
     searchField() {
       return this.$refs['asset-search-field']
-    },
-
-    // Filter the displayed assets by the display settings
-    displayedAssetsByTypeFiltered() {
-      if (
-        this.displaySettings.showSharedAssets &&
-        this.displaySettings.showLinkedAssets
-      ) {
-        return this.displayedAssetsByType
-      }
-      const episodeId = this.currentEpisode?.id
-
-      return this.displayedAssetsByType.map(typeList => {
-        return typeList.filter(asset => {
-          if (!this.displaySettings.showSharedAssets && asset.shared) {
-            return false
-          }
-          if (
-            this.isTVShow &&
-            !this.displaySettings.showLinkedAssets &&
-            !['all', asset.episode_id || 'main'].includes(episodeId)
-          ) {
-            return false
-          }
-          return true
-        })
-      })
     },
 
     filteredAssets() {
@@ -1023,11 +998,17 @@ export default {
     },
 
     reset() {
-      this.initialLoading = true
-      this.loadAssets().then(() => {
-        this.initialLoading = false
-        this.applySearchFromUrl()
-      })
+      // Debounce: cross-prod navigation triggers two close currentEpisode changes (transient 'main' then 'all').
+      if (this.resetTimeout) clearTimeout(this.resetTimeout)
+      this.resetTimeout = setTimeout(() => {
+        this.resetTimeout = null
+        if (this.isAssetsLoading) return
+        this.initialLoading = true
+        this.loadAssets().then(() => {
+          this.initialLoading = false
+          this.applySearchFromUrl()
+        })
+      }, 50)
     }
   },
 

@@ -924,7 +924,7 @@ export default {
     },
 
     currentProduction() {
-      return this.productionMap.get(this.task.project_id)
+      return this.productionMap.get(this.task?.project_id)
     },
 
     marginBottom() {
@@ -1195,7 +1195,7 @@ export default {
     },
 
     focus() {
-      this.$refs.container.focus()
+      this.$refs.container?.focus()
     },
 
     timeCodeClicked({ versionRevision, frame }) {
@@ -1818,16 +1818,10 @@ export default {
       })
     },
 
-    extractVideoFrame(canvas, frame) {
-      return new Promise(resolve => {
-        this.setCurrentFrame(frame)
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.previewViewer.extractFrame(canvas, frame)
-            resolve()
-          }, 500)
-        })
-      })
+    async extractVideoFrame(canvas, frame) {
+      this.setCurrentFrame(frame)
+      await setTimeout(() => {}, 100)
+      await this.previewViewer.extractFrame(canvas, frame)
     },
 
     copyAnnotationCanvas(canvas, annotation) {

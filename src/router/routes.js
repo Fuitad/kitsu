@@ -1,5 +1,4 @@
 import Bowser from 'bowser'
-import { nextTick } from 'vue'
 
 import auth from '@/lib/auth'
 import init from '@/lib/init'
@@ -16,6 +15,7 @@ import Login from '@/components/pages/Login.vue'
 import Main from '@/components/Main.vue'
 
 const AllTasks = () => import('@/components/pages/AllTasks.vue')
+const SharedPlaylist = () => import('@/components/pages/SharedPlaylist.vue')
 const Asset = () => import('@/components/pages/Asset.vue')
 const AssetLibrary = () => import('@/components/pages/AssetLibrary.vue')
 const Assets = () => import('@/components/pages/Assets.vue')
@@ -56,6 +56,9 @@ const ProductionNewsFeed = () =>
   import('@/components/pages/ProductionNewsFeed.vue')
 const ProductionQuota = () => import('@/components/pages/ProductionQuota.vue')
 const Productions = () => import('@/components/pages/Productions.vue')
+const ProjectTemplates = () => import('@/components/pages/ProjectTemplates.vue')
+const ProjectTemplateSettings = () =>
+  import('@/components/pages/ProjectTemplateSettings.vue')
 const ProductionSchedule = () =>
   import('@/components/pages/ProductionSchedule.vue')
 const ProductionSettings = () =>
@@ -103,12 +106,15 @@ const ADMIN_PAGES = [
   'team-schedule',
   'settings',
   'status-automations',
-  'studios'
+  'studios',
+  'project-templates',
+  'project-template-settings'
 ]
 
 export const routes = [
   {
     path: '',
+    name: 'home',
     component: Main,
 
     beforeEnter: (to, from, next) => {
@@ -203,11 +209,6 @@ export const routes = [
 
     children: [
       {
-        path: '',
-        name: 'home'
-      },
-
-      {
         path: 'asset-library',
         component: AssetLibrary,
         name: 'asset-library'
@@ -241,6 +242,17 @@ export const routes = [
         path: 'studios',
         name: 'studios',
         component: Studios
+      },
+
+      {
+        path: 'project-templates',
+        name: 'project-templates',
+        component: ProjectTemplates
+      },
+      {
+        path: 'project-templates/:template_id',
+        name: 'project-template-settings',
+        component: ProjectTemplateSettings
       },
 
       {
@@ -390,14 +402,7 @@ export const routes = [
       {
         path: 'profile',
         component: Profile,
-        name: 'profile',
-        children: [
-          {
-            path: 'change-avatar',
-            component: Profile,
-            name: 'change-avatar'
-          }
-        ]
+        name: 'profile'
       },
 
       {
@@ -438,24 +443,7 @@ export const routes = [
       {
         path: 'productions',
         component: Productions,
-        name: 'productions',
-        children: [
-          {
-            path: 'new',
-            component: Productions,
-            name: 'productions-new'
-          },
-          {
-            path: 'edit/:production_edit_id',
-            component: Productions,
-            name: 'edit-production'
-          },
-          {
-            path: 'delete/:production_delete_id',
-            component: Productions,
-            name: 'delete-production'
-          }
-        ]
+        name: 'productions'
       },
 
       {
@@ -597,16 +585,6 @@ export const routes = [
             name: 'playlist',
             path: ':playlist_id',
             component: Playlist
-          },
-          {
-            name: 'delete-playlist',
-            path: ':playlist_id/delete',
-            component: Playlist
-          },
-          {
-            name: 'edit-playlist',
-            path: ':playlist_id/edit',
-            component: Playlist
           }
         ]
       },
@@ -744,11 +722,6 @@ export const routes = [
         component: Task,
         children: [
           {
-            name: 'task-change-preview',
-            path: 'comments/:comment_id/change-preview',
-            component: Task
-          },
-          {
             name: 'task-preview',
             path: 'previews/:preview_id',
             component: Task
@@ -764,11 +737,6 @@ export const routes = [
       },
 
       {
-        path: 'productions/:production_id/episodes/:episode_id/schedule',
-        component: ProductionSchedule,
-        name: 'episode-schedule'
-      },
-      {
         path: 'productions/:production_id/episodes/:episode_id/playlists',
         component: Playlist,
         name: 'episode-playlists',
@@ -776,16 +744,6 @@ export const routes = [
           {
             name: 'episode-playlist',
             path: ':playlist_id',
-            component: Playlist
-          },
-          {
-            name: 'episode-delete-playlist',
-            path: ':playlist_id/delete',
-            component: Playlist
-          },
-          {
-            name: 'episode-edit-playlist',
-            path: ':playlist_id/edit',
             component: Playlist
           }
         ]
@@ -938,20 +896,6 @@ export const routes = [
     }
   },
   {
-    path: '/logout',
-    name: 'logout',
-    beforeEnter: (to, from, next) => {
-      next('/login')
-      nextTick(async () => {
-        try {
-          await store.dispatch('logout')
-        } catch (error) {
-          console.error('An error occurred while logout', error)
-        }
-      })
-    }
-  },
-  {
     path: '/first-connection',
     component: FirstConnection,
     name: 'first-connection'
@@ -975,6 +919,12 @@ export const routes = [
     path: '/wrong-browser',
     component: WrongBrowser,
     name: 'wrong-browser'
+  },
+
+  {
+    path: '/playlists/shared/:token',
+    component: SharedPlaylist,
+    name: 'shared-playlist'
   },
 
   {
